@@ -6,6 +6,7 @@ import math, time, random, csv, datetime
 import ImportObject
 import PIL.Image as Image
 import jeep, cone
+from star import star
 
 windowSize = 600
 helpWindow = False
@@ -203,6 +204,8 @@ def display():
         obj.draw()
     for cone in allcones:
         cone.draw()
+    for star in allstars:
+        star.draw()
 
     # if (usedDiamond == False):
     #     diamondObj.draw()
@@ -211,6 +214,7 @@ def display():
     jeepObj.drawW1()
     jeepObj.drawW2()
     jeepObj.drawLight()
+
     #personObj.draw()
     glutSwapBuffers()
 
@@ -336,6 +340,10 @@ def noReshape(newX, newY): #used to ensure program works correctly when resized
 def addCone(x,z):
     allcones.append(cone.cone(x,z))
     obstacleCoord.append((x,z))
+
+def addStar(x,y,z):
+    allstars.append(star(x,y,z))
+
 
 def collisionCheck():
     global overReason, score, usedDiamond, countTime
@@ -502,9 +510,14 @@ def main():
 
     # things to do
     # add stars
+    addStar(10,5,10)
 
     for cone in allcones:
         cone.makeDisplayLists()
+    
+    for star in allstars:
+        star.makeDisplayLists()
+    
 
 
     
