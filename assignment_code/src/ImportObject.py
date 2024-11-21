@@ -96,11 +96,13 @@ class ImportedObject:
                     ## Load normals
                     elif vals[0] == "vn":  
                         # things to do 
-
+                        vn = map(float, vals[1:4])  
+                        self.norms.append(vn)
                     ## Load texture coordinates
                     elif vals[0] == "vt":
                         # things to do 
-                        
+                        vt = map(float, vals[1:4])  
+                        self.texCoords.append(vt)
                     ## Load materials. Set index to -1!
                     elif vals[0] == "usemtl":
                         m = vals[1]
@@ -109,6 +111,13 @@ class ImportedObject:
                     elif vals[0] == "f":
                         tempFace = []
                         # things to do 
+                        for i in range(1,len(vals)):
+                            indexes = vals[i].split("/")
+                            indexes[0] = int(indexes[0])
+                            indexes[1] = -1
+                            indexes[2] = int(indexes[2])
+
+                            tempFace.append(indexes)
                         self.faces.append(tempFace)  
                              
         if self.verbose:
