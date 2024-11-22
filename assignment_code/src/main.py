@@ -12,7 +12,7 @@ windowSize = 600
 helpWindow = False
 helpWin = 0
 mainWin = 0
-centered = False
+centered = True
 
 beginTime = 0
 countTime = 0
@@ -142,7 +142,7 @@ def staticObjects():
 
 
 def display():
-    global jeepObj, canStart, score, beginTime, countTime
+    global jeepObj, canStart, score, beginTime, countTime, midDown
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
     if (applyLighting == True):
@@ -216,6 +216,11 @@ def display():
     jeepObj.drawLight()
 
     #personObj.draw()
+    if not midDown:
+        setObjView()
+    else:
+        setView()
+
     glutSwapBuffers()
 
 def idle():#--------------with more complex display items like turning wheel---
@@ -231,7 +236,7 @@ def idle():#--------------with more complex display items like turning wheel---
 
 #---------------------------------setting camera----------------------------
 def setView():
-    global eyeX, eyeY, eyeZ
+    global eyeX, eyeY, eyeZ, jeepObj
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     gluPerspective(90, 1, 0.1, 100)
@@ -240,7 +245,7 @@ def setView():
     elif (behindView ==True):
         gluLookAt(jeepObj.posX, jeepObj.posY + 1.0, jeepObj.posZ - 2.0, jeepObj.posX, jeepObj.posY, jeepObj.posZ, 0, 1, 0) 
     else:
-        gluLookAt(eyeX, eyeY, eyeZ, 0, 0, 0, 0, 1, 0)
+        gluLookAt(eyeX, eyeY, eyeZ, jeepObj.posX, jeepObj.posY, jeepObj.posZ, 0, 1, 0)
     glMatrixMode(GL_MODELVIEW)
     
     glutPostRedisplay()    
@@ -249,7 +254,19 @@ def setObjView():
     # things to do
     # realize a view following the jeep
     # refer to setview
-    pass
+    global eyeX, eyeY, eyeZ
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    gluPerspective(90, 1, 0.1, 100)
+
+    eyeX = jeepObj.posX
+    eyeY = jeepObj.posY+10.0
+    eyeZ = jeepObj.posZ-10.0
+
+    gluLookAt(eyeX,eyeY,eyeZ,jeepObj.posX,jeepObj.posY,jeepObj.posZ,0,1,0)
+
+    glMatrixMode(GL_MODELVIEW)
+    glutPostRedisplay()    
 
 #-------------------------------------------user inputs------------------
 def mouseHandle(button, state, x, y):
@@ -261,7 +278,7 @@ def mouseHandle(button, state, x, y):
         midDown = False    
         
 def motionHandle(x,y):
-    global nowX, nowY, angle, eyeX, eyeY, eyeZ, phi
+    global nowX, nowY, angle, eyeX, eyeY, eyeZ, phi, jeepObj
     if (midDown == True):
         pastX = nowX
         pastY = nowY 
@@ -275,12 +292,12 @@ def motionHandle(x,y):
             #phi += 1.0
         #elif (nowX - pastY <0):
             #phi -= 1.0
-        eyeX = radius * math.sin(angle) 
-        eyeZ = radius * math.cos(angle)
+        eyeX = jeepObj.posX + radius * math.sin(angle) 
+        eyeZ = jeepObj.posZ + radius * math.cos(angle)
         #eyeY = radius * math.sin(phi)
-    if centered == False:
+    if midDown == True:
         setView()
-    elif centered == True:
+    elif midDown == False:
         setObjView()
     #print eyeX, eyeY, eyeZ, nowX, nowY, radius, angle
     #print "getting handled"
@@ -290,10 +307,15 @@ def motionHandle(x,y):
 def specialKeys(keypress, mX, mY):
     # things to do
     # this is the function to move the car
-    pass
+    if keypress == GLUT_KEY_UP:
+        # print("Up key pressed")
+        jeepObj.move(False,1)
+    if keypress == GLUT_KEY_DOWN:
+        # print("Up key pressed")
+        jeepObj.move(False,-0.5)
 
 def myKeyboard(key, mX, mY):
-    global eyeX, eyeY, eyeZ, angle, radius, helpWindow, centered, helpWin, overReason, topView, behindView
+    global eyeX, eyeY, eyeZ, angle, radius, helpWindow, centered, helpWin, overReason, topView, behindView, jeepObj
     if key == b"h":
         print ("h pushed"+ str(helpWindow))
         winNum = glutGetWindow()
@@ -314,6 +336,7 @@ def myKeyboard(key, mX, mY):
             glutMainLoop()
     # things can do
     # this is the part to set special functions, such as help window.
+    
 
 #-------------------------------------------------tools----------------------       
 def drawTextBitmap(string, x, y): #for writing text to display
