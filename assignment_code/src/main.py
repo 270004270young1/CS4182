@@ -8,6 +8,21 @@ import PIL.Image as Image
 import jeep, cone
 from star import star
 
+# Light type identifiers
+AMBIENT = 0
+POINT = 1
+DIRECTIONAL = 2
+SPOTLIGHT = 3
+
+currentLightType = AMBIENT  # Default light type
+
+isFullScreen = False
+windowWidth = 600
+windowHeight = 600
+isResizing = False  # Track if the user is resizing the window
+resizeStartX = 0    # Initial X position when resizing starts
+resizeStartY = 0    # Initial Y position when resizing starts
+
 windowSize = 600
 helpWindow = False
 helpWin = 0
@@ -21,10 +36,10 @@ finalScore = 0
 canStart = False
 overReason = ""
 
-#for wheel spinning
+# For wheel spinning
 tickTime = 0
 
-#creating objects
+# Creating objects
 objectArray = []
 jeep1Obj = jeep.jeep('p')
 jeep2Obj = jeep.jeep('g')
@@ -33,9 +48,9 @@ jeep3Obj = jeep.jeep('r')
 allJeeps = [jeep1Obj, jeep2Obj, jeep3Obj]
 jeepNum = 0
 jeepObj = allJeeps[jeepNum]
-#personObj = person.person(10.0,10.0)
+# personObj = person.person(10.0,10.0)
 
-#concerned with camera
+# Concerned with camera
 eyeX = 0.0
 eyeY = 2.0
 eyeZ = 10.0
@@ -43,7 +58,7 @@ midDown = False
 topView = False
 behindView = False
 
-#concerned with panning
+# Concerned with panning
 nowX = 0.0
 nowY = 0.0
 jeepPastZ = 0
@@ -55,15 +70,14 @@ radius = 10.0
 phi = 0.0
 rotation = 0.0
 
-#concerned with scene development
+# Concerned with scene development
 land = 20
 gameEnlarge = 10
 
-#concerned with obstacles (cones) & rewards (stars)
+# Concerned with obstacles (cones) & rewards (stars)
 coneAmount = 15
-starAmount = 5 #val = -10 pts
-diamondAmount = 1 #val = deducts entire by 1/2
-# diamondObj = diamond.diamond(random.randint(-land, land), random.randint(10.0, land*gameEnlarge))
+starAmount = 5  # Number of stars
+diamondAmount = 1  # Not used currently
 usedDiamond = False
 
 allcones = []
@@ -72,35 +86,35 @@ obstacleCoord = []
 rewardCoord = []
 ckSense = 5.0
 
-#concerned with lighting#########################!!!!!!!!!!!!!!!!##########
-applyLighting = False
+# Concerned with lighting
+applyLighting = True  # Set to True to enable lighting
 
 fov = 30.0
 attenuation = 1.0
 
-light0_Position = [0.0, 1.0, 1.0, 1.0]
-light0_Intensity = [0.75, 0.75, 0.75, 0.25]
+# Updated light position to be consistent across modes
+light0_Position = [0.0, 10.0, 10.0, 1.0]
+light0_Intensity = [1.0, 1.0, 1.0, 1.0]
 
-light1_Position = [0.0, 0.0, 0.0, 0.0]
-light1_Intensity = [0.25, 0.25, 0.25, 0.25]
-
-matAmbient = [1.0, 1.0, 1.0, 1.0]
-matDiffuse = [0.5, 0.5, 0.5, 1.0]
+matAmbient = [0.2, 0.2, 0.2, 1.0]
+matDiffuse = [0.8, 0.8, 0.8, 1.0]
 matSpecular = [0.5, 0.5, 0.5, 1.0]
-matShininess  = 100.0
+matShininess = 50.0
 
+# Variables for star movement
+starSpeed = 0.02  # Speed at which the star moves
+starAngle = 0.0   # Angle for circular movement
 
-
-#--------------------------------------developing scene---------------
+# --------------------------------------developing scene---------------
 class Scene:
     axisColor = (0.5, 0.5, 0.5, 0.5)
     axisLength = 50   # Extends to positive and negative on all axes
-    landColor = (.47, .53, .6, 0.5) #Light Slate Grey
+    landColor = (.47, .53, .6, 0.5)  # Light Slate Grey
     landLength = land  # Extends to positive and negative on x and y axis
     landW = 1.0
     landH = 0.0
     cont = gameEnlarge
-    
+
     def draw(self):
         self.drawAxis()
         self.drawLand()
@@ -138,145 +152,241 @@ class Scene:
 
         glDisable(GL_TEXTURE_2D)
 
-#--------------------------------------populating scene----------------
+# --------------------------------------populating scene----------------
 def staticObjects():
     global objectArray
     objectArray.append(Scene())
-    print ('append')
-
+    print('append')
 
 def display():
     global jeepObj, canStart, score, beginTime, countTime, midDown, speed, jeepPastZ
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glLoadIdentity()
 
-    if (applyLighting == True):
-        glPushMatrix()
-        glLoadIdentity()
-        gluLookAt(0.0, 3.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+    # Set the view
+    if not midDown:
+        setObjView()
+    else:
+        setView()
 
-        glLightfv(GL_LIGHT0, GL_POSITION, light0_Position)
-        pointPosition = [0.0,-10.0,0.0]
+    # Configure the lighting
+    if applyLighting:
+        configureLight()
 
-        glDisable(GL_LIGHTING)
-
-        glColor3f(light0_Intensity[0], light0_Intensity[1], light0_Intensity[2])
-
-        glTranslatef(light0_Position[0], light0_Position[1], light0_Position[2])
-
-        glutSolidSphere(0.025, 36, 24)
-
-        glTranslatef(-light0_Position[0], -light0_Position[1], -light0_Position[2])
-        glEnable(GL_LIGHTING)
-        glMaterialfv(GL_FRONT, GL_AMBIENT, matAmbient)
-        for x in range(1,4):
-            for z in range(1,4):
-                 matDiffuse = [float(x) * 0.3, float(x) * 0.3, float(x) * 0.3, 1.0] 
-                 matSpecular = [float(z) * 0.3, float(z) * 0.3, float(z) * 0.3, 1.0]  
-                 matShininess = float(z * z) * 10.0
-                 ## Set the material diffuse values for the polygon front faces. 
-                 glMaterialfv(GL_FRONT, GL_DIFFUSE, matDiffuse)
-
-                 ## Set the material specular values for the polygon front faces. 
-                 glMaterialfv(GL_FRONT, GL_SPECULAR, matSpecular)
-
-                 ## Set the material shininess value for the polygon front faces. 
-                 glMaterialfv(GL_FRONT, GL_SHININESS, matShininess)
-
-                 ## Draw a glut solid sphere with inputs radius, slices, and stacks
-                 glutSolidSphere(0.25, 72, 64)
-                 glTranslatef(1.0, 0.0, 0.0)
-
-            glTranslatef(-3.0, 0.0, 1.0)
-        glPopMatrix()
-   
-    beginTime = 6-score
-    countTime = score-6
-    if (score <= 5):
+    # Render the scene
+    beginTime = 6 - score
+    countTime = score - 6
+    if score <= 5:
         canStart = False
-        glColor3f(1.0,0.0,1.0)
-        text3d("Begins in: "+str(beginTime), jeepObj.posX, jeepObj.posY + 3.0, jeepObj.posZ)
-    elif (score == 6):
+        glColor3f(1.0, 0.0, 1.0)
+        text3d("Begins in: " + str(beginTime), jeepObj.posX, jeepObj.posY + 3.0, jeepObj.posZ)
+    elif score == 6:
         canStart = True
-        glColor(1.0,0.0,1.0)
+        glColor(1.0, 0.0, 1.0)
         text3d("GO!", jeepObj.posX, jeepObj.posY + 3.0, jeepObj.posZ)
     else:
         canStart = True
-        glColor3f(0.0,1.0,1.0)
-        text3d("Scoring: "+str(countTime), jeepObj.posX, jeepObj.posY + 3.0, jeepObj.posZ)
+        glColor3f(0.0, 1.0, 1.0)
+        text3d("Scoring: " + str(countTime), jeepObj.posX, jeepObj.posY + 3.0, jeepObj.posZ)
 
-    if jeepObj.posZ >= ribbonZ and jeepPastZ < ribbonZ and jeepObj.posX >=-20.0 and jeepObj.posX<=20.0:
+    if jeepObj.posZ >= ribbonZ and jeepPastZ < ribbonZ and jeepObj.posX >= -20.0 and jeepObj.posX <= 20.0:
         speed = 2.0
-        glutTimerFunc(2*1000,removeAcceleration,0)
+        glutTimerFunc(2 * 1000, removeAcceleration, 0)
 
     jeepPastZ = jeepObj.posZ
+
+    # Draw objects
     for obj in objectArray:
         obj.draw()
     for cone in allcones:
         cone.draw()
     for star in allstars:
         star.draw()
-
-    # if (usedDiamond == False):
-    #     diamondObj.draw()
-    
     jeepObj.draw()
     jeepObj.drawW1()
     jeepObj.drawW2()
     jeepObj.drawLight()
-
     drawAcceleratingRibbon()
-    #personObj.draw()
-    if not midDown:
-        setObjView()
-    else:
-        setView()
+
+    drawTextTopLeft("Press f to toggle full screen")
 
     glutSwapBuffers()
 
 def drawAcceleratingRibbon():
     global ribbonZ
     glPushMatrix()
-    glTranslatef(0,0,ribbonZ)
-    glColor3f(0.3,0.7,0.9)
-    glRectf(-20,-0.5,20,0.5)
+    glTranslatef(0, 0, ribbonZ)
+    glColor3f(0.3, 0.7, 0.9)
+    glRectf(-20, -0.5, 20, 0.5)
     glPopMatrix()
 
 def removeAcceleration(val):
     global speed
-    print("remve acceleration")
+    print("remove acceleration")
     speed = 1.0
 
-def idle():#--------------with more complex display items like turning wheel---
-    global tickTime, prevTime, score
-    jeepObj.rotateWheel(-0.1 * tickTime)    
+def idle():
+    global tickTime, prevTime, score, starAngle
+    jeepObj.rotateWheel(-0.1 * tickTime)
+    
+    # Update the star's position
+    moveStars()
+    
     glutPostRedisplay()
-    
-    curTime = glutGet(GLUT_ELAPSED_TIME)
-    tickTime =  curTime - prevTime
-    prevTime = curTime
-    score = curTime/1000
-    
 
-#---------------------------------setting camera----------------------------
+    curTime = glutGet(GLUT_ELAPSED_TIME)
+    tickTime = curTime - prevTime
+    prevTime = curTime
+    score = curTime / 1000
+
+def moveStars():
+    """Move the star(s) automatically."""
+    global starAngle
+    radius = 14.0  # Radius of the circular path
+    starAngle += starSpeed  # Update the angle
+
+    # Loop through all stars and update their positions
+    for star_obj in allstars:
+        star_obj.posX = radius * math.cos(starAngle)
+        star_obj.posZ = radius * math.sin(starAngle)
+        # React to the environment by changing color
+        reactToEnvironment(star_obj)
+
+def reactToEnvironment(star_obj):
+    """Make the star react to the environment (e.g., light)."""
+    if currentLightType == AMBIENT:
+        # Dimmer color in ambient light
+        star_obj.color = (0.5, 0.5, 0.0)  # Dark yellow
+    else:
+        # Brighter color in other light modes
+        star_obj.color = (1.0, 1.0, 0.0)  # Bright yellow
+
+def configureLight():
+    global currentLightType, light0_Position
+
+    glEnable(GL_LIGHTING)  # Enable lighting
+    glEnable(GL_LIGHT0)    # Use light source 0
+    glEnable(GL_NORMALIZE)
+    glShadeModel(GL_SMOOTH)
+
+
+    resetLightProperties()  # Reset light properties
+
+    if currentLightType == AMBIENT:
+        # Ambient light properties
+        ambient_intensity = [0.5, 0.5, 0.5, 1.0]  # Moderate intensity
+        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient_intensity)
+        # Disable other components
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, [0.0, 0.0, 0.0, 1.0])
+        glLightfv(GL_LIGHT0, GL_SPECULAR, [0.0, 0.0, 0.0, 1.0])
+
+        # Enable color tracking for ambient material properties
+        glEnable(GL_COLOR_MATERIAL)
+        glColorMaterial(GL_FRONT, GL_AMBIENT)
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, [0.0, 0.0, 0.0, 1.0])  # Disable diffuse
+        glMaterialfv(GL_FRONT, GL_SPECULAR, [0.0, 0.0, 0.0, 1.0])  # Disable specular
+    else:
+        # Reset global ambient light to default (black)
+        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [0.0, 0.0, 0.0, 1.0])
+
+        if currentLightType == POINT:
+            # Point light properties
+            position = light0_Position.copy()
+            position[3] = 1.0  # w = 1.0 for positional light
+            glLightfv(GL_LIGHT0, GL_POSITION, position)
+            glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_Intensity)
+            glLightfv(GL_LIGHT0, GL_SPECULAR, light0_Intensity)
+        elif currentLightType == DIRECTIONAL:
+            # Directional light properties
+            # Light coming from the top (negative Y-axis)
+            direction = [0.0, 0.0, -1.0, 0.0]  # Direction vector for light
+            glLightfv(GL_LIGHT0, GL_POSITION, direction)
+            glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_Intensity)
+            glLightfv(GL_LIGHT0, GL_SPECULAR, light0_Intensity)
+            # Disable ambient component for the light source
+            glLightfv(GL_LIGHT0, GL_AMBIENT, [0.0, 0.0, 0.0, 1.0])
+        elif currentLightType == SPOTLIGHT:
+            # Set the light position above the scene
+            position = [0.0, 10.0, 10.0, 1.0]
+            glLightfv(GL_LIGHT0, GL_POSITION, position)
+            
+            # # Configure the spotlight
+            glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 90.0)        # Adjust cutoff angle for narrower spotlight
+            glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 2.0)      # Higher exponent for more focused light
+            
+            # # Set the spotlight direction to point downwards
+            spotlight_direction = [0.0, -1.0, -1.0,0.0]
+            glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spotlight_direction)
+            
+            # # Set light intensities
+            glLightfv(GL_LIGHT0, GL_DIFFUSE, [1.0, 1.0, 1.0, 1.0])
+            glLightfv(GL_LIGHT0, GL_SPECULAR, [1.0, 1.0, 1.0, 1.0])
+            
+            # Set attenuation factors
+            glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 1.0)
+            glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.1)
+            glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.01)  # Slight quadratic attenuation for realistic falloff
+
+
+        # Set material properties
+        setMaterialProperties()
+
+
+def resetLightProperties():
+    """Reset all light properties to avoid interference between modes."""
+    glLightfv(GL_LIGHT0, GL_AMBIENT, [0.0, 0.0, 0.0, 1.0])
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, [0.0, 0.0, 0.0, 1.0])
+    glLightfv(GL_LIGHT0, GL_SPECULAR, [0.0, 0.0, 0.0, 1.0])
+    glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 180.0)  # Disable spotlight
+    glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 0.0)
+    glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, [0.0, 0.0, -1.0])  # Default spot direction
+    # Reset global ambient light
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [0.0, 0.0, 0.0, 1.0])
+    glDisable(GL_COLOR_MATERIAL)  # Disable color material tracking
+
+def setMaterialProperties():
+    """Set material properties based on the current lighting mode."""
+    if currentLightType == AMBIENT:
+        # For ambient light, color tracking is enabled
+        pass  # No need to set material properties here
+    else:
+        # For other lights, set ambient, diffuse, and specular
+        glDisable(GL_COLOR_MATERIAL)  # Disable color tracking
+        glMaterialfv(GL_FRONT, GL_AMBIENT, matAmbient)
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, matDiffuse)
+        glMaterialfv(GL_FRONT, GL_SPECULAR, matSpecular)
+        glMaterialf(GL_FRONT, GL_SHININESS, matShininess)
+
+def lightMenu(option):
+    global currentLightType
+    currentLightType = option
+    glutPostRedisplay()  # Redraw the scene
+
+def createMenu():
+    menu = glutCreateMenu(lightMenu)  # Create the menu and link it to lightMenu()
+    glutAddMenuEntry("Ambient Light", AMBIENT)
+    glutAddMenuEntry("Point Light", POINT)
+    glutAddMenuEntry("Directional Light", DIRECTIONAL)
+    glutAddMenuEntry("Spotlight", SPOTLIGHT)
+    glutAttachMenu(GLUT_RIGHT_BUTTON)  # Attach menu to the right mouse button
+
+# ---------------------------------setting camera----------------------------
 def setView():
     global eyeX, eyeY, eyeZ, jeepObj
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     gluPerspective(90, 1, 0.1, 100)
-    if (topView == True):
-        gluLookAt(0, 10, land*gameEnlarge/2, 0, jeepObj.posY, land*gameEnlarge/2, 0, 1, 0)
-    elif (behindView ==True):
-        gluLookAt(jeepObj.posX, jeepObj.posY + 1.0, jeepObj.posZ - 2.0, jeepObj.posX, jeepObj.posY, jeepObj.posZ, 0, 1, 0) 
+    if topView:
+        gluLookAt(0, 10, land * gameEnlarge / 2, 0, jeepObj.posY, land * gameEnlarge / 2, 0, 1, 0)
+    elif behindView:
+        gluLookAt(jeepObj.posX, jeepObj.posY + 1.0, jeepObj.posZ - 2.0, jeepObj.posX, jeepObj.posY, jeepObj.posZ, 0, 1, 0)
     else:
         gluLookAt(eyeX, eyeY, eyeZ, jeepObj.posX, jeepObj.posY, jeepObj.posZ, 0, 1, 0)
     glMatrixMode(GL_MODELVIEW)
-    
-    glutPostRedisplay()    
+
+    glutPostRedisplay()
 
 def setObjView():
-    # things to do
-    # realize a view following the jeep
-    # refer to setview
     global eyeX, eyeY, eyeZ, jeepObj
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
@@ -285,104 +395,116 @@ def setObjView():
     eyeX = jeepObj.posX + 10 * math.sin(-rotation)
     eyeY = jeepObj.posY + 10.0
     eyeZ = jeepObj.posZ - 10.0 * math.cos(rotation)
-    # print("jeepX: "+str(jeepObj.posX)+" jeepY: "+str(jeepObj.posY)+" jeepZ: "+str(jeepObj.posZ))
-    # print("eyeX: "+str(eyeX)+" eyeY: "+str(eyeY)+" eyeZ: "+str(eyeZ))
 
-    gluLookAt(eyeX,eyeY,eyeZ,jeepObj.posX,jeepObj.posY,jeepObj.posZ,0,1,0)
+    gluLookAt(eyeX, eyeY, eyeZ, jeepObj.posX, jeepObj.posY, jeepObj.posZ, 0, 1, 0)
 
     glMatrixMode(GL_MODELVIEW)
-    glutPostRedisplay()    
+    glutPostRedisplay()
 
-#-------------------------------------------user inputs------------------
+# -------------------------------------------user inputs------------------
 def mouseHandle(button, state, x, y):
     global midDown
-    if (button == GLUT_MIDDLE_BUTTON and state == GLUT_DOWN):
+    if button == GLUT_MIDDLE_BUTTON and state == GLUT_DOWN:
         midDown = True
-        print ('pushed')
+        print('pushed')
     else:
-        midDown = False    
-        
-def motionHandle(x,y):
+        midDown = False
+
+def motionHandle(x, y):
     global nowX, nowY, angle, eyeX, eyeY, eyeZ, phi, jeepObj
-    if (midDown == True):
+    if midDown:
         pastX = nowX
-        pastY = nowY 
+        pastY = nowY
         nowX = x
         nowY = y
-        if (nowX - pastX > 0):
+        if nowX - pastX > 0:
             angle -= 0.25
-        elif (nowX - pastX < 0):
+        elif nowX - pastX < 0:
             angle += 0.25
-        #elif (nowY - pastY > 0): look into looking over and under object...
-            #phi += 1.0
-        #elif (nowX - pastY <0):
-            #phi -= 1.0
-        eyeX = jeepObj.posX + radius * math.sin(angle) 
+        eyeX = jeepObj.posX + radius * math.sin(angle)
         eyeZ = jeepObj.posZ + radius * math.cos(angle)
-        #eyeY = radius * math.sin(phi)
-    if midDown == True:
+    if midDown:
         setView()
-    elif midDown == False:
+    else:
         setObjView()
-    #print eyeX, eyeY, eyeZ, nowX, nowY, radius, angle
-    #print "getting handled"
-
-
 
 def specialKeys(keypress, mX, mY):
-    # things to do
-    # this is the function to move the car
-    global rotation,speed
-    div = glutGet(GLUT_WINDOW_WIDTH)/3
+    global rotation, speed
+    div = glutGet(GLUT_WINDOW_WIDTH) / 3
     rot = 0.0
-    if(mX<div):
+    if mX < div:
         rot = 1.0
-    elif(mX>div*2):
+    elif mX > div * 2:
         rot = -1.0
     if keypress == GLUT_KEY_UP:
-        # print("Up key pressed")
-        rotation+=rot*0.0175
-        jeepObj.move(False,speed)
-        jeepObj.move(True,rot)
+        rotation += rot * 0.0175
+        jeepObj.move(False, speed)
+        jeepObj.move(True, rot)
 
     if keypress == GLUT_KEY_DOWN:
-        # print("Up key pressed")
-        rotation+=rot*0.0175
-        jeepObj.move(False,-speed/2)
-        jeepObj.move(True,rot)
+        rotation += rot * 0.0175
+        jeepObj.move(False, -speed / 2)
+        jeepObj.move(True, rot)
 
 def myKeyboard(key, mX, mY):
-    global eyeX, eyeY, eyeZ, angle, radius, helpWindow, centered, helpWin, overReason, topView, behindView, jeepObj
-    if key == b"h":
-        print ("h pushed"+ str(helpWindow))
+    global isFullScreen, windowWidth, windowHeight, helpWindow, helpWin
+
+    if key == b'f':  # Toggle full-screen mode
+        print("f key pressed")
+        isFullScreen = not isFullScreen
+        if isFullScreen:
+            # Enter full-screen mode
+            glutFullScreen()
+        else:
+            # Exit full-screen mode
+            print("Exiting full-screen mode")
+            glutReshapeWindow(windowWidth, windowHeight)
+            glutPositionWindow(100, 100)  # Reset the window's position to the center
+
+    elif key == b"h":  # Toggle Help Window
+        print("h key pressed")
         winNum = glutGetWindow()
-        if helpWindow == False:
+        if not helpWindow:
             helpWindow = True
             glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH)
-            glutInitWindowSize(500,300)
-            glutInitWindowPosition(600,0)
-            helpWin = glutCreateWindow(b'Help Guide')
+            glutInitWindowSize(500, 300)
+            glutInitWindowPosition(600, 0)
+            helpWin = glutCreateWindow(b"Help Guide")
             glutDisplayFunc(showHelp)
             glutKeyboardFunc(myKeyboard)
-            glutMainLoop()
-        elif helpWindow == True and winNum!=1:
+        elif helpWindow and winNum != 1:
             helpWindow = False
-            print (glutGetWindow())
             glutHideWindow()
-            #glutDestroyWindow(helpWin)
-            glutMainLoop()
-    # things can do
-    # this is the part to set special functions, such as help window.
-    
 
-#-------------------------------------------------tools----------------------       
-def drawTextBitmap(string, x, y): #for writing text to display
+def drawTextTopLeft(message):
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    gluOrtho2D(0, windowWidth, 0, windowHeight)  # Set coordinate system to window size
+
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+
+    glColor3f(1.0, 1.0, 1.0)  # White color for text
+    glRasterPos2i(10, windowHeight - 20)  # Position 10px from the left, 20px below the top
+
+    for char in message:
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(char))
+
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
+
+# -------------------------------------------------tools----------------------
+def drawTextBitmap(string, x, y):  # For writing text to display
     glRasterPos2f(x, y)
     for char in string:
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(char))
 
 def text3d(string, x, y, z):
-    glRasterPos3f(x,y,z)
+    glRasterPos3f(x, y, z)
     for char in string:
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(char))
 
@@ -391,19 +513,17 @@ def dist(pt1, pt2):
     b = pt1[1]
     x = pt2[0]
     y = pt2[1]
-    return math.sqrt((a-x)**2 + (b-y)**2)
+    return math.sqrt((a - x) ** 2 + (b - y) ** 2)
 
-def noReshape(newX, newY): #used to ensure program works correctly when resized
-    glutReshapeWindow(windowSize,windowSize)
+# --------------------------------------------making game more complex--------
+def addCone(x, z):
+    allcones.append(cone.cone(x, z))
+    obstacleCoord.append((x, z))
 
-#--------------------------------------------making game more complex--------
-def addCone(x,z):
-    allcones.append(cone.cone(x,z))
-    obstacleCoord.append((x,z))
-
-def addStar(x,y,z):
-    allstars.append(star(x,y,z))
-
+def addStar(x, y, z):
+    new_star = star(x, y, z)
+    allstars.append(new_star)
+    new_star.makeDisplayLists()
 
 def collisionCheck():
     global overReason, score, usedDiamond, countTime
@@ -415,95 +535,88 @@ def collisionCheck():
         overReason = "You ran off the road!"
         gameOver()
 
-    if (dist((jeepObj.posX, jeepObj.posZ), (diamondObj.posX, diamondObj.posZ)) <= ckSense and usedDiamond ==False):
-        print ("Diamond bonus!")
-        countTime /= 2
-        usedDiamond = True
-    if (jeepObj.posZ >= land*gameEnlarge):
+    if (jeepObj.posZ >= land * gameEnlarge):
         gameSuccess()
-        
-#----------------------------------multiplayer dev (using tracker)-----------
+
+# ----------------------------------multiplayer dev (using tracker)-----------
 def recordGame():
     with open('results.csv', 'wt') as csvfile:
-        spamwriter = csv.writer(csvfile, delimiter=',',quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        spamwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         ts = time.time()
         st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
         print(st)
         spamwriter.writerow([st] + [finalScore])
-    
-#-------------------------------------developing additional windows/options----
+
+# -------------------------------------developing additional windows/options----
 def gameOver():
     global finalScore
-    print ("Game completed!")
-    finalScore = score-6
-    #recordGame() #add to excel
+    print("Game completed!")
+    finalScore = score - 6
     glutHideWindow()
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH)
-    glutInitWindowSize(200,200)
-    glutInitWindowPosition(600,100)
+    glutInitWindowSize(200, 200)
+    glutInitWindowPosition(600, 100)
     overWin = glutCreateWindow("Game Over!")
     glutDisplayFunc(overScreen)
     glutMainLoop()
-    
+
 def gameSuccess():
     global finalScore
-    print ("Game success!")
-    finalScore = score-6
-    #recordGame() #add to excel
+    print("Game success!")
+    finalScore = score - 6
     glutHideWindow()
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH)
-    glutInitWindowSize(200,200)
-    glutInitWindowPosition(600,100)
+    glutInitWindowSize(200, 200)
+    glutInitWindowPosition(600, 100)
     overWin = glutCreateWindow("Complete!")
     glutDisplayFunc(winScreen)
     glutMainLoop()
 
 def winScreen():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    glColor3f(0.0,1.0,0.0)
-    drawTextBitmap("Completed Trial!" , -0.6, 0.85)
-    glColor3f(0.0,1.0,0.0)
+    glColor3f(0.0, 1.0, 0.0)
+    drawTextBitmap("Completed Trial!", -0.6, 0.85)
+    glColor3f(0.0, 1.0, 0.0)
     drawTextBitmap("Your score is: ", -1.0, 0.0)
-    glColor3f(1.0,1.0,1.0)
+    glColor3f(1.0, 1.0, 1.0)
     drawTextBitmap(str(finalScore), -1.0, -0.15)
     glutSwapBuffers()
 
-
 def overScreen():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    glColor3f(1.0,0.0,1.0)
-    drawTextBitmap("Incomplete Trial" , -0.6, 0.85)
-    glColor3f(0.0,1.0,0.0)
-    drawTextBitmap("Because you..." , -1.0, 0.5)
-    glColor3f(1.0,1.0,1.0)
+    glColor3f(1.0, 0.0, 1.0)
+    drawTextBitmap("Incomplete Trial", -0.6, 0.85)
+    glColor3f(0.0, 1.0, 0.0)
+    drawTextBitmap("Because you...", -1.0, 0.5)
+    glColor3f(1.0, 1.0, 1.0)
     drawTextBitmap(overReason, -1.0, 0.35)
-    glColor3f(0.0,1.0,0.0)
+    glColor3f(0.0, 1.0, 0.0)
     drawTextBitmap("Your score stopped at: ", -1.0, 0.0)
-    glColor3f(1.0,1.0,1.0)
+    glColor3f(1.0, 1.0, 1.0)
     drawTextBitmap(str(finalScore), -1.0, -0.15)
     glutSwapBuffers()
 
 def showHelp():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    glColor3f(1.0,0.0,0.0)
-    drawTextBitmap("Help Guide" , -0.2, 0.85)
-    glColor3f(0.0,0.0,1.0)
-    drawTextBitmap("describe your control strategy." , -1.0, 0.7)
+    glColor3f(1.0, 0.0, 0.0)
+    drawTextBitmap("Help Guide", -0.2, 0.85)
+    glColor3f(0.0, 0.0, 1.0)
+    drawTextBitmap("Describe your control strategy.", -1.0, 0.7)
     glutSwapBuffers()
 
-#----------------------------------------------texture development-----------
+# ----------------------------------------------texture development-----------
 def loadTexture(imageName):
     texturedImage = Image.open(imageName)
     try:
         imgX = texturedImage.size[0]
         imgY = texturedImage.size[1]
-        img = texturedImage.tobytes("raw","RGBX",0,-1)#tostring("raw", "RGBX", 0, -1)
+        img = texturedImage.tobytes("raw", "RGBX", 0, -1)
     except Exception:
-        print ("Error:")
-        print ("Switching to RGBA mode.")
+        print("Error:")
+        print("Switching to RGBA mode.")
         imgX = texturedImage.size[0]
         imgY = texturedImage.size[1]
-        img = texturedImage.tobytes("raw","RGB",0,-1)#tostring("raw", "RGBA", 0, -1)
+        img = texturedImage.tobytes("raw", "RGB", 0, -1)
 
     tempID = glGenTextures(1)
     glBindTexture(GL_TEXTURE_2D, tempID)
@@ -518,78 +631,63 @@ def loadTexture(imageName):
 def loadSceneTextures():
     global roadTextureID
     roadTextureID = loadTexture("./img/road2.png")
-    
-#-----------------------------------------------lighting work--------------
+
+# -----------------------------------------------lighting work--------------
 def initializeLight():
-    glEnable(GL_LIGHTING)                
-    glEnable(GL_LIGHT0)                 
-    glEnable(GL_DEPTH_TEST)              
-    glEnable(GL_NORMALIZE)               
+    glEnable(GL_LIGHTING)
+    glEnable(GL_LIGHT0)
+    glEnable(GL_DEPTH_TEST)
+    glEnable(GL_NORMALIZE)
     glClearColor(0.1, 0.1, 0.1, 0.0)
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~the finale!!!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~the finale!!!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
     glutInit()
 
     global prevTime, mainWin
     prevTime = glutGet(GLUT_ELAPSED_TIME)
-    
+
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH)
-    # things to do
-    # change the window resolution in the game
     glutInitWindowSize(windowSize, windowSize)
-    
+
     glutInitWindowPosition(0, 0)
     mainWin = glutCreateWindow(b'CS4182')
     glutDisplayFunc(display)
-    glutIdleFunc(idle)#wheel turn
+    glutIdleFunc(idle)  # Wheel turn
 
     setView()
     glLoadIdentity()
-    glEnable(GL_DEPTH_TEST)   
+    glEnable(GL_DEPTH_TEST)
 
     glutMouseFunc(mouseHandle)
     glutMotionFunc(motionHandle)
     glutSpecialFunc(specialKeys)
     glutKeyboardFunc(myKeyboard)
-    glutReshapeFunc(noReshape)
 
-    # things to do
-    # add a menu 
+    # Create the lighting menu
+    createMenu()
 
     loadSceneTextures()
 
     jeep1Obj.makeDisplayLists()
     jeep2Obj.makeDisplayLists()
     jeep3Obj.makeDisplayLists()
-    #personObj.makeDisplayLists()
 
-    # things to do
-    # add a automatic object
-    for i in range(coneAmount):#create cones randomly for obstacles, making sure to give a little lag time in beginning by adding 10.0 buffer
-        addCone(random.randint(-land, land), random.randint(10.0, land*gameEnlarge))
+    for i in range(coneAmount):  # Create cones randomly for obstacles
+        addCone(random.randint(-land, land), random.randint(10.0, land * gameEnlarge))
 
-    # things to do
-    # add stars
-    addStar(10,5,10)
+    # Add a moving star
+    addStar(15, 5, 0)  # Starting position; will be updated in moveStars()
 
     for cone in allcones:
         cone.makeDisplayLists()
-    
-    for star in allstars:
-        star.makeDisplayLists()
-    
 
-    
-    # diamondObj.makeDisplayLists()
-    
+    # Note: The star's display list is created in addStar()
+
     staticObjects()
-    if (applyLighting == True):
+    if applyLighting:
         initializeLight()
     glutMainLoop()
 
-
-
-    
-main()
-
+if __name__ == "__main__":
+    main()
