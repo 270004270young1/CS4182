@@ -7,6 +7,7 @@ import ImportObject
 import PIL.Image as Image
 import jeep, cone
 from star import star
+from diamond import diamond
 
 windowSize = 600
 helpWindow = False
@@ -63,7 +64,7 @@ gameEnlarge = 10
 coneAmount = 15
 starAmount = 5 #val = -10 pts
 diamondAmount = 1 #val = deducts entire by 1/2
-# diamondObj = diamond.diamond(random.randint(-land, land), random.randint(10.0, land*gameEnlarge))
+diamondObj = diamond(random.randint(-land, land),3, random.randint(10.0, land*gameEnlarge))
 usedDiamond = False
 
 allcones = []
@@ -209,6 +210,8 @@ def display():
         glutTimerFunc(2*1000,removeAcceleration,0)
 
     jeepPastZ = jeepObj.posZ
+    collisionCheck()
+    
     for obj in objectArray:
         obj.draw()
     for cone in allcones:
@@ -216,8 +219,8 @@ def display():
     for star in allstars:
         star.draw()
 
-    # if (usedDiamond == False):
-    #     diamondObj.draw()
+    if (usedDiamond == False):
+        diamondObj.draw()
     
     jeepObj.draw()
     jeepObj.drawW1()
@@ -572,7 +575,7 @@ def main():
     # things to do
     # add stars
     addStar(10,5,10)
-
+    diamondObj.makeDisplayLists()
     for cone in allcones:
         cone.makeDisplayLists()
     
