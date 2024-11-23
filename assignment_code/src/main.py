@@ -50,6 +50,7 @@ nowY = 0.0
 angle = 0.0
 radius = 10.0
 phi = 0.0
+rotation = 0.0
 
 #concerned with scene development
 land = 20
@@ -254,14 +255,16 @@ def setObjView():
     # things to do
     # realize a view following the jeep
     # refer to setview
-    global eyeX, eyeY, eyeZ
+    global eyeX, eyeY, eyeZ, jeepObj
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     gluPerspective(90, 1, 0.1, 100)
 
-    eyeX = jeepObj.posX
-    eyeY = jeepObj.posY+10.0
-    eyeZ = jeepObj.posZ-10.0
+    eyeX = jeepObj.posX + 10 * math.sin(-rotation)
+    eyeY = jeepObj.posY + 10.0
+    eyeZ = jeepObj.posZ - 10.0 * math.cos(rotation)
+    print("jeepX: "+str(jeepObj.posX)+" jeepY: "+str(jeepObj.posY)+" jeepZ: "+str(jeepObj.posZ))
+    print("eyeX: "+str(eyeX)+" eyeY: "+str(eyeY)+" eyeZ: "+str(eyeZ))
 
     gluLookAt(eyeX,eyeY,eyeZ,jeepObj.posX,jeepObj.posY,jeepObj.posZ,0,1,0)
 
@@ -307,12 +310,23 @@ def motionHandle(x,y):
 def specialKeys(keypress, mX, mY):
     # things to do
     # this is the function to move the car
+    global rotation
+    div = glutGet(GLUT_WINDOW_WIDTH)/3
+    rot = 0.0
+    if(mX<div):
+        rot = 1.0
+    elif(mX>div*2):
+        rot = -1.0
+    rotation+=rot*0.015
     if keypress == GLUT_KEY_UP:
         # print("Up key pressed")
         jeepObj.move(False,1)
+        jeepObj.move(True,rot)
+
     if keypress == GLUT_KEY_DOWN:
         # print("Up key pressed")
         jeepObj.move(False,-0.5)
+        jeepObj.move(True,rot)
 
 def myKeyboard(key, mX, mY):
     global eyeX, eyeY, eyeZ, angle, radius, helpWindow, centered, helpWin, overReason, topView, behindView, jeepObj
