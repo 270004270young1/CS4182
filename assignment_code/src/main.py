@@ -46,6 +46,9 @@ behindView = False
 #concerned with panning
 nowX = 0.0
 nowY = 0.0
+jeepPastZ = 0
+ribbonZ = 40.0
+speed = 1.0
 
 angle = 0.0
 radius = 10.0
@@ -143,7 +146,7 @@ def staticObjects():
 
 
 def display():
-    global jeepObj, canStart, score, beginTime, countTime, midDown
+    global jeepObj, canStart, score, beginTime, countTime, midDown, speed, jeepPastZ
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
     if (applyLighting == True):
@@ -201,6 +204,11 @@ def display():
         glColor3f(0.0,1.0,1.0)
         text3d("Scoring: "+str(countTime), jeepObj.posX, jeepObj.posY + 3.0, jeepObj.posZ)
 
+    if jeepObj.posZ >= ribbonZ and jeepPastZ < ribbonZ and jeepObj.posX >=-20.0 and jeepObj.posX<=20.0:
+        speed = 2.0
+        glutTimerFunc(2*1000,removeAcceleration,0)
+
+    jeepPastZ = jeepObj.posZ
     for obj in objectArray:
         obj.draw()
     for cone in allcones:
@@ -216,6 +224,7 @@ def display():
     jeepObj.drawW2()
     jeepObj.drawLight()
 
+    drawAcceleratingRibbon()
     #personObj.draw()
     if not midDown:
         setObjView()
@@ -223,6 +232,19 @@ def display():
         setView()
 
     glutSwapBuffers()
+
+def drawAcceleratingRibbon():
+    global ribbonZ
+    glPushMatrix()
+    glTranslatef(0,0,ribbonZ)
+    glColor3f(0.3,0.7,0.9)
+    glRectf(-20,-0.5,20,0.5)
+    glPopMatrix()
+
+def removeAcceleration(val):
+    global speed
+    print("remve acceleration")
+    speed = 1.0
 
 def idle():#--------------with more complex display items like turning wheel---
     global tickTime, prevTime, score
@@ -263,8 +285,8 @@ def setObjView():
     eyeX = jeepObj.posX + 10 * math.sin(-rotation)
     eyeY = jeepObj.posY + 10.0
     eyeZ = jeepObj.posZ - 10.0 * math.cos(rotation)
-    print("jeepX: "+str(jeepObj.posX)+" jeepY: "+str(jeepObj.posY)+" jeepZ: "+str(jeepObj.posZ))
-    print("eyeX: "+str(eyeX)+" eyeY: "+str(eyeY)+" eyeZ: "+str(eyeZ))
+    # print("jeepX: "+str(jeepObj.posX)+" jeepY: "+str(jeepObj.posY)+" jeepZ: "+str(jeepObj.posZ))
+    # print("eyeX: "+str(eyeX)+" eyeY: "+str(eyeY)+" eyeZ: "+str(eyeZ))
 
     gluLookAt(eyeX,eyeY,eyeZ,jeepObj.posX,jeepObj.posY,jeepObj.posZ,0,1,0)
 
@@ -310,22 +332,23 @@ def motionHandle(x,y):
 def specialKeys(keypress, mX, mY):
     # things to do
     # this is the function to move the car
-    global rotation
+    global rotation,speed
     div = glutGet(GLUT_WINDOW_WIDTH)/3
     rot = 0.0
     if(mX<div):
         rot = 1.0
     elif(mX>div*2):
         rot = -1.0
-    rotation+=rot*0.015
     if keypress == GLUT_KEY_UP:
         # print("Up key pressed")
-        jeepObj.move(False,1)
+        rotation+=rot*0.0175
+        jeepObj.move(False,speed)
         jeepObj.move(True,rot)
 
     if keypress == GLUT_KEY_DOWN:
         # print("Up key pressed")
-        jeepObj.move(False,-0.5)
+        rotation+=rot*0.0175
+        jeepObj.move(False,-speed/2)
         jeepObj.move(True,rot)
 
 def myKeyboard(key, mX, mY):
@@ -530,6 +553,7 @@ def main():
     glutSpecialFunc(specialKeys)
     glutKeyboardFunc(myKeyboard)
     glutReshapeFunc(noReshape)
+
     # things to do
     # add a menu 
 
@@ -555,7 +579,6 @@ def main():
     for star in allstars:
         star.makeDisplayLists()
     
-
 
     
     # diamondObj.makeDisplayLists()
