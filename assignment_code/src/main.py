@@ -79,7 +79,7 @@ gameEnlarge = 10
 coneAmount = 15
 starAmount = 5 #val = -10 pts
 diamondAmount = 1 #val = deducts entire by 1/2
-# diamondObj = diamond.diamond(random.randint(-land, land), random.randint(10.0, land*gameEnlarge))
+diamondObj = diamond(random.randint(-land, land),3, random.randint(10.0, land*gameEnlarge))
 usedDiamond = False
 
 allcones = []
@@ -242,6 +242,7 @@ def display():
     # Render the scene
     beginTime = 6 - score
     countTime = score - 6
+    collisionCheck()
     if score <= 5:
         canStart = False
         glColor3f(1.0, 0.0, 1.0)
@@ -267,8 +268,8 @@ def display():
     for star in allstars:
         star.draw()
 
-    # if (usedDiamond == False):
-    #     diamondObj.draw()
+    if (usedDiamond == False):
+        diamondObj.draw()
     
     jeepObj.draw()
     jeepObj.drawW1()
@@ -305,7 +306,7 @@ def idle():
     curTime = glutGet(GLUT_ELAPSED_TIME)
     tickTime = curTime - prevTime
     prevTime = curTime
-    score = curTime / 1000
+    score += tickTime / 1000
 
 def moveStars():
     """Move the star(s) automatically."""
@@ -609,7 +610,7 @@ def addStar(x, y, z):
     new_star.makeDisplayLists()
 
 def collisionCheck():
-    global overReason, score, usedDiamond, countTime
+    global overReason, score, usedDiamond, countTime, score
     for obstacle in obstacleCoord:
         if dist((jeepObj.posX, jeepObj.posZ), obstacle) <= ckSense:
             overReason = "You hit an obstacle!"
@@ -618,6 +619,10 @@ def collisionCheck():
         overReason = "You ran off the road!"
         gameOver()
 
+    if (dist((jeepObj.posX, jeepObj.posZ), (diamondObj.posX, diamondObj.posZ)) <= ckSense and usedDiamond ==False):
+        print ("Diamond bonus!")
+        score /= 2
+        usedDiamond = True
     if (jeepObj.posZ >= land * gameEnlarge):
         gameSuccess()
 
@@ -728,7 +733,7 @@ def initializeLight():
 def main():
     glutInit()
 
-    global prevTime, mainWin
+    global prevTime, mainWin, diamondObj
     prevTime = glutGet(GLUT_ELAPSED_TIME)
 
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH)
@@ -767,6 +772,7 @@ def main():
     # things to do
     # add stars
     addStar(10,5,10)
+    diamondObj.makeDisplayLists()
 
     for cone in allcones:
         cone.makeDisplayLists()
