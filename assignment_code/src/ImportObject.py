@@ -213,7 +213,8 @@ class ImportedObject:
         if self.verbose:
             print("Loading " + texFile)
         ## Open the image file
-        texImage = imageOpen(texFile)        
+        path = "./img/"+texFile
+        texImage = imageOpen(path)        
         try:
             ix, iy, image = texImage.size[0], \
                             texImage.size[1], \
