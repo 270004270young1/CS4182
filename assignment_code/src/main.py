@@ -7,6 +7,7 @@ import ImportObject
 import PIL.Image as Image
 import jeep, cone
 from star import star
+from male import male
 from diamond import diamond
 
 # Light type identifiers
@@ -84,6 +85,7 @@ usedDiamond = False
 
 allcones = []
 allstars = []
+allmale=[]
 obstacleCoord = []
 rewardCoord = []
 ckSense = 5.0
@@ -146,6 +148,10 @@ def introAnimation():
         star_obj.posX = 10 * math.cos(progress * 4 * math.pi)
         star_obj.posZ = 10 * math.sin(progress * 4 * math.pi)
         star_obj.draw()
+    for male_obj in allmale:
+        male_obj.draw()
+
+    
 
     # Display advertisement text
     glColor3f(1.0, 1.0, 0.0)
@@ -267,6 +273,8 @@ def display():
         cone.draw()
     for star in allstars:
         star.draw()
+    for male in allmale:
+        male.draw()
 
     if (usedDiamond == False):
         diamondObj.draw()
@@ -612,6 +620,11 @@ def addStar(x, y, z):
     allstars.append(new_star)
     new_star.makeDisplayLists()
 
+def addMale(x,y):
+    new_male= male(x,y)
+    allmale.append(new_male)
+    new_male.makeDisplayLists()
+
 def collisionCheck():
     global overReason, score, usedDiamond, countTime, score
     for obstacle in obstacleCoord:
@@ -775,12 +788,12 @@ def main():
     # things to do
     # add stars
     addStar(10,5,10)
+    addMale(22,30)
     diamondObj.makeDisplayLists()
 
     for cone in allcones:
         cone.makeDisplayLists()
 
-    # Note: The star's display list is created in addStar()
 
     staticObjects()
     if applyLighting:
