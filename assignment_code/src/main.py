@@ -107,6 +107,67 @@ matShininess = 50.0
 starSpeed = 0.02  # Speed at which the star moves
 starAngle = 0.0   # Angle for circular movement
 
+
+# Variables for the animation
+animationTime = 0
+animationDuration = 8000  # Duration in milliseconds
+animationStartTime = None
+animationRunning = True
+
+def introAnimation():
+    global animationTime, animationStartTime, animationRunning
+
+    if animationStartTime is None:
+        animationStartTime = glutGet(GLUT_ELAPSED_TIME)
+
+    currentTime = glutGet(GLUT_ELAPSED_TIME)
+    animationTime = currentTime - animationStartTime
+
+    # Clear the screen
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glLoadIdentity()
+
+    # Calculate animation progress
+    progress = animationTime / animationDuration
+
+    # Animate camera movement
+    cameraX = 20 * math.sin(progress * 2 * math.pi)
+    cameraY = 5 + 5 * math.sin(progress * 2 * math.pi)
+    cameraZ = 20 * math.cos(progress * 2 * math.pi)
+
+    gluLookAt(cameraX, cameraY, cameraZ, 0, 0, 0, 0, 1, 0)
+
+    # Draw scene elements
+    for obj in objectArray:
+        obj.draw()
+    for cone_obj in allcones:
+        cone_obj.draw()
+    for star_obj in allstars:
+        star_obj.posX = 10 * math.cos(progress * 4 * math.pi)
+        star_obj.posZ = 10 * math.sin(progress * 4 * math.pi)
+        star_obj.draw()
+
+    # Display advertisement text
+    glColor3f(1.0, 1.0, 0.0)
+    text3d("Welcome to Jeep Adventure!", -5, 10, 0)
+    text3d("An Exciting Journey Awaits.", -5, 8, 0)
+
+    glutSwapBuffers()
+
+    # Check if the animation duration is over
+    if animationTime >= animationDuration:
+        animationRunning = False
+        # Reset camera position
+        setView()
+        # Switch to the main display and idle functions
+        glutDisplayFunc(display)
+        glutIdleFunc(idle)
+        glutPostRedisplay()
+    else:
+        glutPostRedisplay()
+
+
+
 # --------------------------------------developing scene---------------
 class Scene:
     axisColor = (0.5, 0.5, 0.5, 0.5)
@@ -174,6 +235,9 @@ def display():
     # Configure the lighting
     if applyLighting:
         configureLight()
+        # drawLightMarker(light0_Position)
+        
+
 
     # Render the scene
     beginTime = 6 - score
@@ -265,6 +329,19 @@ def reactToEnvironment(star_obj):
         # Brighter color in other light modes
         star_obj.color = (1.0, 1.0, 0.0)  # Bright yellow
 
+
+def drawLightMarker(position):
+    """
+    Draws a small marker (sphere) at the light's position.
+    :param position: A list or tuple representing the light position [x, y, z, w].
+    """
+    glPushMatrix()
+    glTranslatef(position[0], position[1], position[2])
+    glColor3f(1.0, 1.0, 0.0)  # Yellow color for the marker
+    glutSolidSphere(0.2, 20, 20)  # Draw a small sphere
+    glPopMatrix()
+
+
 def configureLight():
     global currentLightType, light0_Position
 
@@ -280,6 +357,7 @@ def configureLight():
         # Ambient light properties
         ambient_intensity = [0.5, 0.5, 0.5, 1.0]  # Moderate intensity
         glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient_intensity)
+        # drawLightMarker(light0_Position)
         # Disable other components
         glLightfv(GL_LIGHT0, GL_DIFFUSE, [0.0, 0.0, 0.0, 1.0])
         glLightfv(GL_LIGHT0, GL_SPECULAR, [0.0, 0.0, 0.0, 1.0])
@@ -315,11 +393,12 @@ def configureLight():
             glLightfv(GL_LIGHT0, GL_POSITION, position)
             
             # # Configure the spotlight
-            glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 90.0)        # Adjust cutoff angle for narrower spotlight
+            glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 60.0) # Adjust cutoff angle for narrower spotlight
             glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 2.0)      # Higher exponent for more focused light
             
             # # Set the spotlight direction to point downwards
-            spotlight_direction = [0.0, -1.0, -1.0,0.0]
+            spotlight_direction = [0.0, -1.0, 0.0]
+
             glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spotlight_direction)
             
             # # Set light intensities
@@ -642,6 +721,7 @@ def initializeLight():
     glEnable(GL_LIGHT0)
     glEnable(GL_DEPTH_TEST)
     glEnable(GL_NORMALIZE)
+    
     glClearColor(0.1, 0.1, 0.1, 0.0)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~the finale!!!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -656,8 +736,12 @@ def main():
 
     glutInitWindowPosition(0, 0)
     mainWin = glutCreateWindow(b'CS4182')
-    glutDisplayFunc(display)
-    glutIdleFunc(idle)  # Wheel turn
+    # glutDisplayFunc(display)
+    # glutIdleFunc(idle)  # Wheel turn
+
+    # Set the initial display function to the animation
+    glutDisplayFunc(introAnimation)
+    glutIdleFunc(introAnimation)  # Run animation in idle
 
     setView()
     glLoadIdentity()
