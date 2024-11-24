@@ -390,12 +390,12 @@ def configureLight():
             glLightfv(GL_LIGHT0, GL_AMBIENT, [0.0, 0.0, 0.0, 1.0])
         elif currentLightType == SPOTLIGHT:
             # Set the light position above the scene
-            position = [0.0, 10.0, 10.0, 1.0]
+            position = [0.0, 40.0, 0.0, 1.0]
             glLightfv(GL_LIGHT0, GL_POSITION, position)
             
             # # Configure the spotlight
             glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 60.0) # Adjust cutoff angle for narrower spotlight
-            glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 2.0)      # Higher exponent for more focused light
+            glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 1.0)      # Higher exponent for more focused light
             
             # # Set the spotlight direction to point downwards
             spotlight_direction = [0.0, -1.0, 0.0]
@@ -407,9 +407,9 @@ def configureLight():
             glLightfv(GL_LIGHT0, GL_SPECULAR, [1.0, 1.0, 1.0, 1.0])
             
             # Set attenuation factors
-            glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 1.0)
-            glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.1)
-            glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.01)  # Slight quadratic attenuation for realistic falloff
+            # glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 1.0)
+            # glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.1)
+            # glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.01)  # Slight quadratic attenuation for realistic falloff
 
 
         # Set material properties
@@ -495,7 +495,10 @@ def mouseHandle(button, state, x, y):
         midDown = False
 
 def motionHandle(x, y):
-    global nowX, nowY, angle, eyeX, eyeY, eyeZ, phi, jeepObj
+    global nowX, nowY, angle, eyeX, eyeY, eyeZ, phi, jeepObj, animationRunning
+    if animationRunning:
+        return
+    
     if midDown:
         pastX = nowX
         pastY = nowY
