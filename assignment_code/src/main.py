@@ -8,6 +8,7 @@ import PIL.Image as Image
 import jeep, cone
 from star import star
 from male import male
+from street_lamp import street_lamp
 from diamond import diamond
 
 # Light type identifiers
@@ -77,7 +78,7 @@ land = 20
 gameEnlarge = 10
 
 # Concerned with obstacles (cones) & rewards (stars)
-coneAmount = 15
+coneAmount = 8
 starAmount = 5 #val = -10 pts
 diamondAmount = 1 #val = deducts entire by 1/2
 diamondObj = diamond(random.randint(-land, land),3, random.randint(10.0, land*gameEnlarge))
@@ -86,6 +87,7 @@ usedDiamond = False
 allcones = []
 allstars = []
 allmale=[]
+allStreetLamps=[]
 obstacleCoord = []
 rewardCoord = []
 ckSense = 5.0
@@ -112,7 +114,7 @@ starAngle = 0.0   # Angle for circular movement
 
 # Variables for the animation
 animationTime = 0
-animationDuration = 8000  # Duration in milliseconds
+animationDuration = 7000  # Duration in milliseconds
 animationStartTime = None
 animationRunning = True
 
@@ -150,13 +152,18 @@ def introAnimation():
         star_obj.draw()
     for male_obj in allmale:
         male_obj.draw()
+    for wild_obj in allStreetLamps:
+        wild_obj.draw()
 
     
+    glDisable(GL_LIGHTING)
 
     # Display advertisement text
     glColor3f(1.0, 1.0, 0.0)
     text3d("Welcome to Jeep Adventure!", -5, 10, 0)
     text3d("An Exciting Journey Awaits.", -5, 8, 0)
+
+    glEnable(GL_LIGHTING)
 
     glutSwapBuffers()
 
@@ -244,7 +251,6 @@ def display():
         # drawLightMarker(light0_Position)
         
 
-
     # Render the scene
     beginTime = 6 - score
     countTime = score - 6
@@ -275,6 +281,8 @@ def display():
         star.draw()
     for male in allmale:
         male.draw()
+    for wild_obj in allStreetLamps:
+        wild_obj.draw()
 
     if (usedDiamond == False):
         diamondObj.draw()
@@ -620,10 +628,16 @@ def addStar(x, y, z):
     allstars.append(new_star)
     new_star.makeDisplayLists()
 
-def addMale(x,y):
-    new_male= male(x,y)
+def addMale(x,z):
+    new_male= male(x,z)
     allmale.append(new_male)
     new_male.makeDisplayLists()
+
+def addStreetLamp(x,z):
+    new_Street_Lamp = street_lamp(x,z)
+    allStreetLamps.append(new_Street_Lamp)
+    # new_Street_Lamp.makeDisplayLists()
+
 
 def collisionCheck():
     global overReason, score, usedDiamond, countTime, score
@@ -785,14 +799,26 @@ def main():
     for i in range(coneAmount):  # Create cones randomly for obstacles
         addCone(random.randint(-land, land), random.randint(10.0, land * gameEnlarge))
 
+    for z_position in range(10, 101, 40):  # Start at 10, go to 80, step by 10
+        addStreetLamp(22, z_position)
+
+    for z_position in range(10, 101, 40):  # Start at 10, go to 80, step by 10
+        addStreetLamp(-22, z_position)
+
+
     # things to do
     # add stars
     addStar(10,5,10)
     addMale(22,30)
+    
+
     diamondObj.makeDisplayLists()
 
     for cone in allcones:
         cone.makeDisplayLists()
+
+    for lamp in allStreetLamps:
+        lamp.makeDisplayLists()
 
 
     staticObjects()
