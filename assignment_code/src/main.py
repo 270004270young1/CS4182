@@ -818,8 +818,8 @@ def main():
     glutIdleFunc(idle)  # Wheel turn
 
     # Set the initial display function to the animation
-    # glutDisplayFunc(introAnimation)
-    # glutIdleFunc(introAnimation)  # Run animation in idle
+    glutDisplayFunc(introAnimation)
+    glutIdleFunc(introAnimation)  # Run animation in idle
 
     setView()
     glLoadIdentity()
