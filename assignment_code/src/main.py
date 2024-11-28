@@ -10,6 +10,7 @@ from star import star
 from male import male
 from street_lamp import street_lamp
 from diamond import diamond
+from OpenGL.GL.shaders import compileProgram, compileShader
 
 # Light type identifiers
 AMBIENT = 0
@@ -33,7 +34,7 @@ mainWin = 0
 centered = True
 
 beginTime = 0
-countTime = 0
+countTime = -6.0
 score = 0
 finalScore = 0
 canStart = False
@@ -81,7 +82,7 @@ gameEnlarge = 10
 coneAmount = 8
 starAmount = 5 #val = -10 pts
 diamondAmount = 1 #val = deducts entire by 1/2
-diamondObj = diamond(random.randint(-land, land),3, random.randint(10.0, land*gameEnlarge))
+diamondObj = diamond(random.randint(-land, land),3, random.randint(25.0, land*gameEnlarge))
 usedDiamond = False
 
 allcones = []
@@ -100,6 +101,7 @@ attenuation = 1.0
 
 # Updated light position to be consistent across modes
 light0_Position = [0.0, 10.0, 10.0, 1.0]
+light1_Position = [0.0, 10.0, 20.0, 1.0]
 light0_Intensity = [1.0, 1.0, 1.0, 1.0]
 
 matAmbient = [0.2, 0.2, 0.2, 1.0]
@@ -117,6 +119,11 @@ animationTime = 0
 animationDuration = 7000  # Duration in milliseconds
 animationStartTime = None
 animationRunning = True
+
+#Shader
+vertex_shader_src = open("./src/vertex.glsl").read()
+fragment_shader_src = open("./src/fragment.glsl").read()
+
 
 def introAnimation():
     global animationTime, animationStartTime, animationRunning
@@ -253,7 +260,7 @@ def display():
 
     # Render the scene
     beginTime = 6 - score
-    countTime = score - 6
+    # countTime = score - 6
     collisionCheck()
     if score <= 5:
         canStart = False
@@ -266,7 +273,7 @@ def display():
     else:
         canStart = True
         glColor3f(0.0, 1.0, 1.0)
-        text3d("Scoring: " + str(countTime), jeepObj.posX, jeepObj.posY + 3.0, jeepObj.posZ)
+        text3d("Time elapsed: " + str(countTime), jeepObj.posX, jeepObj.posY + 3.0, jeepObj.posZ)
 
     if jeepObj.posZ >= ribbonZ and jeepPastZ < ribbonZ and jeepObj.posX >= -20.0 and jeepObj.posX <= 20.0:
         speed = 2.0
@@ -311,7 +318,7 @@ def removeAcceleration(val):
     speed = 1.0
 
 def idle():
-    global tickTime, prevTime, score, starAngle
+    global countTime,tickTime, prevTime, score, starAngle
     jeepObj.rotateWheel(-0.1 * tickTime)
     
     # Update the star's position
@@ -322,7 +329,8 @@ def idle():
     curTime = glutGet(GLUT_ELAPSED_TIME)
     tickTime = curTime - prevTime
     prevTime = curTime
-    score += tickTime / 1000
+    score = math.floor(curTime / 1000)
+    countTime += tickTime/1000
 
 def moveStars():
     """Move the star(s) automatically."""
@@ -360,10 +368,11 @@ def drawLightMarker(position):
 
 
 def configureLight():
-    global currentLightType, light0_Position
+    global currentLightType, light0_Position, light1_Position
 
     glEnable(GL_LIGHTING)  # Enable lighting
     glEnable(GL_LIGHT0)    # Use light source 0
+    glEnable(GL_LIGHT1)
     glEnable(GL_NORMALIZE)
     glShadeModel(GL_SMOOTH)
 
@@ -391,36 +400,56 @@ def configureLight():
         if currentLightType == POINT:
             # Point light properties
             position = light0_Position.copy()
+            position1 = light1_Position.copy()
+
             position[3] = 1.0  # w = 1.0 for positional light
             glLightfv(GL_LIGHT0, GL_POSITION, position)
             glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_Intensity)
             glLightfv(GL_LIGHT0, GL_SPECULAR, light0_Intensity)
+            glLightfv(GL_LIGHT1, GL_POSITION, position1)
+            glLightfv(GL_LIGHT1, GL_DIFFUSE, light0_Intensity)
+            glLightfv(GL_LIGHT1, GL_SPECULAR, light0_Intensity)
         elif currentLightType == DIRECTIONAL:
             # Directional light properties
             # Light coming from the top (negative Y-axis)
-            direction = [0.0, 0.0, -1.0, 0.0]  # Direction vector for light
+            direction = [0.0, 1.0, 0.0, 0.0]  # Direction vector for light
+            direction1 = [0.0, 1.0, 1.0, 0.0]
             glLightfv(GL_LIGHT0, GL_POSITION, direction)
             glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_Intensity)
             glLightfv(GL_LIGHT0, GL_SPECULAR, light0_Intensity)
             # Disable ambient component for the light source
             glLightfv(GL_LIGHT0, GL_AMBIENT, [0.0, 0.0, 0.0, 1.0])
+
+            glLightfv(GL_LIGHT1, GL_POSITION, direction1)
+            glLightfv(GL_LIGHT1, GL_DIFFUSE, light0_Intensity)
+            glLightfv(GL_LIGHT1, GL_SPECULAR, light0_Intensity)
+            # Disable ambient component for the light source
+            glLightfv(GL_LIGHT1, GL_AMBIENT, [0.0, 0.0, 0.0, 1.0])
         elif currentLightType == SPOTLIGHT:
             # Set the light position above the scene
             position = [0.0, 40.0, 0.0, 1.0]
+            position1 = [0.0, 40.0, 100.0, 1.0]
             glLightfv(GL_LIGHT0, GL_POSITION, position)
+            glLightfv(GL_LIGHT1, GL_POSITION, position1)
+
             
             # # Configure the spotlight
             glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 60.0) # Adjust cutoff angle for narrower spotlight
             glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 1.0)      # Higher exponent for more focused light
-            
+            glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, 60.0) # Adjust cutoff angle for narrower spotlight
+            glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, 1.0) 
             # # Set the spotlight direction to point downwards
             spotlight_direction = [0.0, -1.0, 0.0]
 
             glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spotlight_direction)
+            glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, spotlight_direction)
             
             # # Set light intensities
             glLightfv(GL_LIGHT0, GL_DIFFUSE, [1.0, 1.0, 1.0, 1.0])
             glLightfv(GL_LIGHT0, GL_SPECULAR, [1.0, 1.0, 1.0, 1.0])
+            
+            glLightfv(GL_LIGHT1, GL_DIFFUSE, [1.0, 1.0, 1.0, 1.0])
+            glLightfv(GL_LIGHT1, GL_SPECULAR, [1.0, 1.0, 1.0, 1.0])
             
             # Set attenuation factors
             # glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 1.0)
@@ -437,9 +466,16 @@ def resetLightProperties():
     glLightfv(GL_LIGHT0, GL_AMBIENT, [0.0, 0.0, 0.0, 1.0])
     glLightfv(GL_LIGHT0, GL_DIFFUSE, [0.0, 0.0, 0.0, 1.0])
     glLightfv(GL_LIGHT0, GL_SPECULAR, [0.0, 0.0, 0.0, 1.0])
+    glLightfv(GL_LIGHT1, GL_AMBIENT, [0.0, 0.0, 0.0, 1.0])
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, [0.0, 0.0, 0.0, 1.0])
+    glLightfv(GL_LIGHT1, GL_SPECULAR, [0.0, 0.0, 0.0, 1.0])
     glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 180.0)  # Disable spotlight
     glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 0.0)
+    glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, 180.0)  # Disable spotlight
+    glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, 0.0)
     glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, [0.0, 0.0, -1.0])  # Default spot direction
+    glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, [0.0, 0.0, -1.0])  # Default spot direction
+    
     # Reset global ambient light
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, [0.0, 0.0, 0.0, 1.0])
     glDisable(GL_COLOR_MATERIAL)  # Disable color material tracking
@@ -532,7 +568,11 @@ def motionHandle(x, y):
         setObjView()
 
 def specialKeys(keypress, mX, mY):
-    global rotation, speed
+    global rotation, speed, canStart
+
+    if not canStart:
+        return
+
     div = glutGet(GLUT_WINDOW_WIDTH) / 3
     rot = 0.0
     if mX < div:
@@ -640,7 +680,7 @@ def addStreetLamp(x,z):
 
 
 def collisionCheck():
-    global overReason, score, usedDiamond, countTime, score
+    global overReason, score, usedDiamond, countTime
     for obstacle in obstacleCoord:
         if dist((jeepObj.posX, jeepObj.posZ), obstacle) <= ckSense:
             overReason = "You hit an obstacle!"
@@ -651,7 +691,7 @@ def collisionCheck():
 
     if (dist((jeepObj.posX, jeepObj.posZ), (diamondObj.posX, diamondObj.posZ)) <= ckSense and usedDiamond ==False):
         print ("Diamond bonus!")
-        score /= 2
+        countTime /= 2
         usedDiamond = True
     if (jeepObj.posZ >= land * gameEnlarge):
         gameSuccess()
@@ -667,9 +707,9 @@ def recordGame():
 
 # -------------------------------------developing additional windows/options----
 def gameOver():
-    global finalScore
+    global finalScore, countTime
     print("Game completed!")
-    finalScore = score - 6
+    finalScore = countTime
     glutHideWindow()
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH)
     glutInitWindowSize(200, 200)
@@ -681,7 +721,7 @@ def gameOver():
 def gameSuccess():
     global finalScore
     print("Game success!")
-    finalScore = score - 6
+    finalScore = countTime
     glutHideWindow()
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH)
     glutInitWindowSize(200, 200)
@@ -691,16 +731,18 @@ def gameSuccess():
     glutMainLoop()
 
 def winScreen():
+    global finalScore
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glColor3f(0.0, 1.0, 0.0)
     drawTextBitmap("Completed Trial!", -0.6, 0.85)
     glColor3f(0.0, 1.0, 0.0)
-    drawTextBitmap("Your score is: ", -1.0, 0.0)
+    drawTextBitmap("Time elapsed: ", -1.0, 0.0)
     glColor3f(1.0, 1.0, 1.0)
     drawTextBitmap(str(finalScore), -1.0, -0.15)
     glutSwapBuffers()
 
 def overScreen():
+    global finalScore
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glColor3f(1.0, 0.0, 1.0)
     drawTextBitmap("Incomplete Trial", -0.6, 0.85)
@@ -709,7 +751,7 @@ def overScreen():
     glColor3f(1.0, 1.0, 1.0)
     drawTextBitmap(overReason, -1.0, 0.35)
     glColor3f(0.0, 1.0, 0.0)
-    drawTextBitmap("Your score stopped at: ", -1.0, 0.0)
+    drawTextBitmap("Time elapsed: ", -1.0, 0.0)
     glColor3f(1.0, 1.0, 1.0)
     drawTextBitmap(str(finalScore), -1.0, -0.15)
     glutSwapBuffers()
@@ -754,6 +796,7 @@ def loadSceneTextures():
 def initializeLight():
     glEnable(GL_LIGHTING)
     glEnable(GL_LIGHT0)
+    glEnable(GL_LIGHT1)
     glEnable(GL_DEPTH_TEST)
     glEnable(GL_NORMALIZE)
     
@@ -771,12 +814,12 @@ def main():
 
     glutInitWindowPosition(0, 0)
     mainWin = glutCreateWindow(b'CS4182')
-    # glutDisplayFunc(display)
-    # glutIdleFunc(idle)  # Wheel turn
+    glutDisplayFunc(display)
+    glutIdleFunc(idle)  # Wheel turn
 
     # Set the initial display function to the animation
-    glutDisplayFunc(introAnimation)
-    glutIdleFunc(introAnimation)  # Run animation in idle
+    # glutDisplayFunc(introAnimation)
+    # glutIdleFunc(introAnimation)  # Run animation in idle
 
     setView()
     glLoadIdentity()
@@ -797,7 +840,7 @@ def main():
     jeep3Obj.makeDisplayLists()
 
     for i in range(coneAmount):  # Create cones randomly for obstacles
-        addCone(random.randint(-land, land), random.randint(10.0, land * gameEnlarge))
+        addCone(random.randint(-land, land), random.randint(25.0, land * gameEnlarge))
 
     for z_position in range(10, 101, 40):  # Start at 10, go to 80, step by 10
         addStreetLamp(22, z_position)
