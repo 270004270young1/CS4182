@@ -11,6 +11,7 @@ from male import male
 from street_lamp import street_lamp
 from diamond import diamond
 from OpenGL.GL.shaders import compileProgram, compileShader
+from path import get_resource_path
 
 # Light type identifiers
 AMBIENT = 0
@@ -34,7 +35,6 @@ mainWin = 0
 centered = True
 
 beginTime = 0
-countTime = -6.0
 score = 0
 finalScore = 0
 canStart = False
@@ -119,10 +119,11 @@ animationTime = 0
 animationDuration = 7000  # Duration in milliseconds
 animationStartTime = None
 animationRunning = True
+countTime = -6.0 - animationDuration/1000
 
 #Shader
-vertex_shader_src = open("./src/vertex.glsl").read()
-fragment_shader_src = open("./src/fragment.glsl").read()
+# vertex_shader_src = open("./src/vertex.glsl").read()
+# fragment_shader_src = open("./src/fragment.glsl").read()
 
 
 def introAnimation():
@@ -318,7 +319,7 @@ def removeAcceleration(val):
     speed = 1.0
 
 def idle():
-    global countTime,tickTime, prevTime, score, starAngle
+    global countTime,tickTime, prevTime, score, starAngle, animationDuration
     jeepObj.rotateWheel(-0.1 * tickTime)
     
     # Update the star's position
@@ -329,7 +330,7 @@ def idle():
     curTime = glutGet(GLUT_ELAPSED_TIME)
     tickTime = curTime - prevTime
     prevTime = curTime
-    score = math.floor(curTime / 1000)
+    score = math.floor((curTime - animationDuration) / 1000)
     countTime += tickTime/1000
 
 def moveStars():
@@ -790,7 +791,7 @@ def loadTexture(imageName):
 
 def loadSceneTextures():
     global roadTextureID
-    roadTextureID = loadTexture("./img/road2.png")
+    roadTextureID = loadTexture(get_resource_path("img/road2.png"))
 
 # -----------------------------------------------lighting work--------------
 def initializeLight():
@@ -814,12 +815,12 @@ def main():
 
     glutInitWindowPosition(0, 0)
     mainWin = glutCreateWindow(b'CS4182')
-    glutDisplayFunc(display)
-    glutIdleFunc(idle)  # Wheel turn
+    # glutDisplayFunc(display)
+    # glutIdleFunc(idle)  # Wheel turn
 
     # Set the initial display function to the animation
-    # glutDisplayFunc(introAnimation)
-    # glutIdleFunc(introAnimation)  # Run animation in idle
+    glutDisplayFunc(introAnimation)
+    glutIdleFunc(introAnimation)  # Run animation in idle
 
     setView()
     glLoadIdentity()
