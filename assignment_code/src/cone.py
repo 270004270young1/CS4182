@@ -3,8 +3,7 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 import math, time
 import ImportObject
-
-
+from path import get_resource_path
 class cone:
     obj = 0
     displayList = 0
@@ -20,7 +19,7 @@ class cone:
     rotation = 0.0
     
     def __init__(self, x, z):
-        self.obj = ImportObject.ImportedObject("./objects/cone")
+        self.obj = ImportObject.ImportedObject(get_resource_path("objects/cone"))
         self.posX = x
         self.posZ = z
         

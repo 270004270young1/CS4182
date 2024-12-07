@@ -3,6 +3,7 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 import math
 import ImportObject
+from path import get_resource_path
 
 class male:
     obj = 0
@@ -19,7 +20,7 @@ class male:
     rotation = 0.0  # Rotation angle around the Y-axis
     
     def __init__(self, x, z):
-        self.obj = ImportObject.ImportedObject("./objects/Male")
+        self.obj = ImportObject.ImportedObject(get_resource_path("objects/Male"))
         self.posX = x
         self.posZ = z
         self.posY = 0.0  # Assuming the human stands on the ground level

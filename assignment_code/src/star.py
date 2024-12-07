@@ -3,7 +3,7 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 import math, time
 import ImportObject
-
+from path import get_resource_path
 
 class star:
     obj = 0
@@ -20,7 +20,7 @@ class star:
     rotation = 0.0
     
     def __init__(self, x, y, z):
-        self.obj = ImportObject.ImportedObject("./objects/star")
+        self.obj = ImportObject.ImportedObject(get_resource_path("objects/star"))
         self.posX = x
         self.posZ = z
         self.posY = y

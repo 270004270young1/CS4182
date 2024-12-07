@@ -3,7 +3,7 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 import math, time
 import ImportObject
-
+from path import get_resource_path
 
 class jeep:
     obj = 0
@@ -40,18 +40,17 @@ class jeep:
     sizeZ = 1.0
 
     rotation = 0.0
-    
     def __init__(self, color):
         if (color == 'p'):
-            self.obj = ImportObject.ImportedObject("./objects/jeepbare")
+            self.obj = ImportObject.ImportedObject(get_resource_path("objects/jeepbare"))
         elif (color == 'g'):
-            self.obj = ImportObject.ImportedObject("./objects/jeepbare2")
+            self.obj = ImportObject.ImportedObject(get_resource_path("objects/jeepbare2"))
         elif (color == 'r'):
-            self.obj = ImportObject.ImportedObject("./objects/jeepbare3")
-        self.wheel1 = ImportObject.ImportedObject("./objects/frontwheel")
-        self.wheel2 = ImportObject.ImportedObject("./objects/backwheel")
-        self.dimL = ImportObject.ImportedObject("./objects/dimlight")
-        self.litL = ImportObject.ImportedObject("./objects/litlight")
+            self.obj = ImportObject.ImportedObject(get_resource_path("objects/jeepbare3"))
+        self.wheel1 = ImportObject.ImportedObject(get_resource_path("objects/frontwheel"))
+        self.wheel2 = ImportObject.ImportedObject(get_resource_path("objects/backwheel"))
+        self.dimL = ImportObject.ImportedObject(get_resource_path("objects/dimlight"))
+        self.litL = ImportObject.ImportedObject(get_resource_path("objects/litlight"))
     
     def makeDisplayLists(self):
         self.obj.loadOBJ()

@@ -4,6 +4,7 @@ from OpenGL.GLU import *
 import math, time
 import ImportObject
 
+from path import get_resource_path
 
 class diamond:
     obj = 0
@@ -20,7 +21,7 @@ class diamond:
     rotation = 0.0
     
     def __init__(self, x, y, z):
-        self.obj = ImportObject.ImportedObject("./objects/diamond")
+        self.obj = ImportObject.ImportedObject(get_resource_path("objects/diamond"))
         self.posX = x
         self.posZ = z
         self.posY = y

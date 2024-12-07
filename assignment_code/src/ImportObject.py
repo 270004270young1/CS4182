@@ -4,6 +4,7 @@ import OpenGL.GLUT as GLUT
 import OpenGL.GLU as GLU
 ## Avoid conflict with Python open
 from PIL.Image import open as imageOpen
+from path import get_resource_path
 
 ## This class is used to create an object from geometry and materials
 ##  saved to a file in WaveFront object format.  The object exported
@@ -213,7 +214,7 @@ class ImportedObject:
         if self.verbose:
             print("Loading " + texFile)
         ## Open the image file
-        path = "./img/"+texFile
+        path = get_resource_path("img/"+texFile)
         texImage = imageOpen(path)        
         try:
             ix, iy, image = texImage.size[0], \
